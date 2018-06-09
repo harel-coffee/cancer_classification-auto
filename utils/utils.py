@@ -8,13 +8,25 @@ import numpy as np
 import pandas as pd
 import os
 
+TUMOR = 0
+NORMAL = 1
+
 tumors_path = "/home/nanni/Data/TCGA/CIBB/"
+aggregates_path = "/home/nanni/Data/TCGA/CIBB/aggregates"
 all_tumor_names = list(filter(lambda x: os.path.isdir(os.path.join(tumors_path, x)) and
                               not x.startswith(".") and x != 'aggregates', os.listdir(tumors_path)))
 
+all_aggregate_names = list(filter(lambda x: os.path.isdir(os.path.join(aggregates_path, x)) and not x.startswith("."),
+                                  os.listdir(aggregates_path)))
+
 
 def get_cancer_data(cancer_name):
-    cancer_path = os.path.join(tumors_path, cancer_name)
+    if cancer_name in all_tumor_names:
+        cancer_path = os.path.join(tumors_path, cancer_name)
+    elif cancer_name in all_aggregate_names:
+        cancer_path = os.path.join(aggregates_path, cancer_name)
+    else:
+        raise ValueError("{} does not exist!".format(cancer_name))
     X = np.load(os.path.join(cancer_path, "X.npy"))
     y = np.load(os.path.join(cancer_path, "y.npy")).astype(int)
     return X, y
