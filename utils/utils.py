@@ -84,34 +84,37 @@ def split_training_default(X, y, train, test, preprocess, validation_split, seed
 
 
 def cross_validation(X, y, create_model, preprocess=None, get_measures=get_measures,
-                     n_folds=5, n_epochs=100, batch_size=60,
+                     n_folds=5, n_epochs=100, batch_size=60, n_randomizations=1,
                      validation_split=0.25, patience=10, metrics=['accuracy'],
                      optimizer="adam", loss='binary_crossentropy', seed=42,
                      data_preparation=split_training_default, **kwargs):
-    kfold = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
     early_stopping = get_early_stopping_condition(patience=patience)
 
     cvscores = []
     histories = []
-    for i_split, (train, test) in enumerate(kfold.split(X, y)):
-        X_train, X_val, X_test, y_train, y_val, y_test = data_preparation(X, y, train, test, preprocess,
-                                                                          validation_split, seed, **kwargs)
 
-        model = create_model(X_train.shape[1])
-        # compile the model
-        model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
-        # fit the model
-        history = model.fit(X_train, y_train,
-                            epochs=n_epochs, batch_size=batch_size,
-                            verbose=0, validation_data=(X_val, y_val),
-                            callbacks=[early_stopping])
-        histories.append(history)
-        # evaluate the model
-        y_pred = model.predict_classes(X_test)
-        measures = get_measures(y_pred=y_pred, y_true=y_test)
-        measures['split'] = i_split
-        print("".join(["{:<10}{:<10.2f}".format(k, v) for (k, v) in measures.items()]))
-        cvscores.append(measures)
+    for r in range(n_randomizations):
+        kfold = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed + r)
+        for i_split, (train, test) in enumerate(kfold.split(X, y)):
+            X_train, X_val, X_test, y_train, y_val, y_test = data_preparation(X, y, train, test, preprocess,
+                                                                              validation_split, seed, **kwargs)
+
+            model = create_model(X_train.shape[1])
+            # compile the model
+            model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+            # fit the model
+            history = model.fit(X_train, y_train,
+                                epochs=n_epochs, batch_size=batch_size,
+                                verbose=0, validation_data=(X_val, y_val),
+                                callbacks=[early_stopping])
+            histories.append(history)
+            # evaluate the model
+            y_pred = model.predict_classes(X_test)
+            measures = get_measures(y_pred=y_pred, y_true=y_test)
+            measures['split'] = i_split
+            measures['random_set'] = r
+            print("".join(["{:<10}{:<10.2f}".format(k, v) for (k, v) in measures.items()]))
+            cvscores.append(measures)
 
     cvscores = pd.DataFrame.from_dict(cvscores)
     return cvscores, histories
