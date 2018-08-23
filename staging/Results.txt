@@ -1,0 +1,13 @@
+SVM without pre-processing (10-fold-CV):
+
+MCC            0.413970
+accuracy       0.726171
+auROC          0.689965
+f-score        0.713950
+sensitivity    0.726171
+
+                            Predicted
+                    Early_Stage	Late_Stage
+		
+Actual  Early_Stage	    277	        98
+        Late_Stage	    47	        109
