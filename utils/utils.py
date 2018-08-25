@@ -64,16 +64,24 @@ def get_cancer_data(cancer_name):
     return X, y
 
 
-def get_all_tcga():
+def get_all_tcga(data="all"):
     all_tcga = None
     labels = []
     for cname in all_tumor_names:
-        X_c, _ = get_cancer_data(cname)
-        labels.extend([cname for _ in range(X_c.shape[0])])
+        X_c, y = get_cancer_data(cname)
         if all_tcga is None:
             n_genes = X_c.shape[1]
             all_tcga = np.empty((0, n_genes))
+        if data == 'tumor':
+            X_c = X_c[y == TUMOR, :]
+        elif data == 'normal':
+            X_c = X_c[y == NORMAL, :]
+        elif data == 'all':
+            pass
+        else:
+            raise ValueError("data filed is incorrect")
         all_tcga = np.vstack((all_tcga, X_c))
+        labels.extend([cname for _ in range(X_c.shape[0])])
     return all_tcga, labels
 
 
