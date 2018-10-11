@@ -184,8 +184,6 @@ def report(cvscores, writer, sheet_name=None):
 
 # Definitions
 STAGE_COLUMN = "pathologic_stage"
-GRADE_COLUMN = "neoplasm_histologic_grade"
-
 SAMPLE_TYPE_COLUMN = "sample_type"
 
 STAGE_I = "Stage I"
@@ -207,6 +205,24 @@ class_encoding = {
 
 class_decoding = {v: k for k, v in class_encoding.items()}
 
+GRADE_COLUMN = "neoplasm_histologic_grade"
+GRADE_1 = "G1"
+GRADE_2 = "G2"
+GRADE_3 = "G3"
+GRADE_4 = "G4"
+GRADE_UNKNOWN = "GX"
+GRADES = [GRADE_1, GRADE_2, GRADE_3, GRADE_4]
+
+LOW_GRADE = "Low Grade"
+HIGH_GRADE = "High Grade"
+
+grade_encoding = {
+    LOW_GRADE: 0,
+    HIGH_GRADE: 1
+}
+
+grade_decoding = {v: k for k, v in grade_encoding.items()}
+
 
 def stage_to_class(stage):
     """Mapping the stage to the classes"""
@@ -224,9 +240,53 @@ def decode_class(c):
     return class_decoding[c]
 
 
-def load_stage_data(X_path, X_meta_path):
+def __load_cohort_data(X_path, X_meta_path):
     X_exp = pd.read_csv(X_path, sep="\t").set_index("sample").T
     X_meta = pd.read_csv(X_meta_path, sep="\t").set_index("sampleID")
+    return X_exp, X_meta
+
+
+def load_classification_problem(X_path, X_meta_path, 
+                                y_column, y_subset, 
+                                X_sample_type, label_to_class=lambda x: x):
+    X_exp, X_meta = __load_cohort_data(X_path, X_meta_path)
+    patients = X_meta[X_meta[y_column].isin(y_subset) & \
+                      (X_meta[SAMPLE_TYPE_COLUMN] == X_sample_type)].index \
+                     .intersection(X_exp.index).tolist()
+    print("# patients with {} and {}: {}".format(X_sample_type, ", ".join(y_subset), len(patients)))
+    
+    X_meta_s = X_meta.loc[patients]
+    gene_names = X_exp.columns.tolist()
+    X = X_exp.loc[patients].as_matrix(gene_names)
+    y = np.array(X_meta_s[y_column].map(label_to_class).tolist())
+
+    assert X.shape[0] == y.shape[0], "X and y have different number of samples"
+
+    idx_to_patient = pd.Series(index=np.arange(len(patients)), data=patients)
+    patient_to_idx = pd.Series(data=np.arange(len(patients)), index=patients)
+
+    idx_to_gene = pd.Series(index=np.arange(len(gene_names)), data=gene_names)
+    gene_to_idx = pd.Series(data=np.arange(len(gene_names)), index=gene_names)
+
+    return X, y, idx_to_patient, patient_to_idx, idx_to_gene, gene_to_idx
+    
+
+def grade_to_class(grade):
+    if grade in [GRADE_1, GRADE_2]:
+        return grade_encoding[LOW_GRADE]
+    else:
+        return grade_encoding[HIGH_GRADE]
+
+
+def load_grade_data(X_path, X_meta_path):
+    return load_classification_problem(X_path, X_meta_path, 
+                                       GRADE_COLUMN, GRADES, 
+                                       PRIMARY_TUMOR_TYPE,
+                                       grade_to_class)
+
+
+def load_stage_data(X_path, X_meta_path):
+    X_exp, X_meta = __load_cohort_data(X_path, X_meta_path)
 
     patients = X_meta[X_meta[STAGE_COLUMN].isin(STAGES) & \
                       (X_meta[SAMPLE_TYPE_COLUMN] == PRIMARY_TUMOR_TYPE)].index \
@@ -293,3 +353,122 @@ def plot_TSNE(X, y, n_jobs=4):
     tsne = TSNE(n_components=2, n_jobs=n_jobs)
     X_t = tsne.fit_transform(X)
     plt.scatter(X_t[:, 0], X_t[:, 1], c=LabelEncoder().fit_transform(y))
+    
+    
+"""
+    Loading all TCGA
+"""
+
+def load_PANCAN_TCGA(path="./data/PANCAN_raw/", 
+                     geneexp_name="batchRemoved", 
+                     clinical_name="clinicalMatrix",
+                     sample_types_name="sample_type",
+                     cnv_name="CNV"):
+    print("LOADING GENE EXPRESSION")
+    tcga = load_geneexp_data(os.path.join(path, "PANCAN_{}.tsv".format(geneexp_name)))
+    print("LOADING CLINICAL DATA")
+    clinical = load_clinical_data(os.path.join(path, "PANCAN_{}.tsv".format(clinical_name)))
+    print("LOADING SAMPLE INFORMATION")
+    sample_types = load_sample_types(os.path.join(path, "PANCAN_{}.tsv".format(sample_types_name)))
+    print("LOADING CNV DATA")
+    cnv = load_cnv_data(os.path.join(path, "PANCAN_{}.tsv".format(cnv_name)))
+    
+    tcga_samples = set(tcga.index.tolist())
+    clinical_samples = set(clinical.index.tolist())
+    sample_types_samples = set(sample_types.index.tolist())
+    cnv_samples = set(cnv.index.tolist())
+    
+    tcga_genes = set(tcga.columns.tolist())
+    cnv_genes = set(cnv.columns.tolist())
+    
+    genes_intersection = sorted(tcga_genes.intersection(cnv_genes))
+    
+    sample_intersection = list(tcga_samples.intersection(clinical_samples)\
+                               .intersection(sample_types_samples)\
+                               .intersection(cnv_samples))
+    
+    tcga = tcga.loc[tcga.index.intersection(sample_intersection), genes_intersection].sort_index()
+    clinical = clinical.loc[clinical.index.intersection(sample_intersection)].sort_index()
+    sample_types = sample_types.loc[sample_types.index.intersection(sample_intersection)].sort_index()
+    cnv = cnv.loc[cnv.index.intersection(sample_intersection), genes_intersection].sort_index()
+    return tcga, cnv, clinical, sample_types
+    
+
+def load_geneexp_data(path="./data/PANCAN_raw/PANCAN_batchRemoved.tsv"):
+    print("Loading expression data")
+    tcga = pd.read_csv(path, sep="\t")
+    # remove the NaN values due to batch-normalization
+    print("Removing NaN values (filling with zero)")
+    tcga = tcga.fillna(0)
+    # there is a gene which has multiple occurrencies. 
+    # We deal with it by doing the mean of counts.
+    print("Grouping duplicated genes by mean")
+    tcga = tcga.groupby(by="sample").mean()
+    # give a name to the gene index
+    tcga.index.rename("gene_symbol", inplace=True)
+    # give a name to the patient index
+    tcga.columns.rename("sample", inplace=True)
+    # convert to patient x gene matrix
+    print("Transpose and sort the data")
+    tcga = tcga.T
+    # sort the patient index
+    tcga.sort_index(axis=0, inplace=True)
+    # sort the gene index
+    tcga.sort_index(axis=1, inplace=True)
+    return tcga
+
+
+def load_cnv_data(path="./data/PANCAN_raw/PANCAN_CNV.tsv"):
+    cnv = pd.read_csv(path, sep="\t")
+    cnv = cnv.rename(columns={'Sample': 'sample'}).set_index("sample").T
+    cnv.columns.rename("gene_symbol", inplace=True)
+    return cnv
+
+
+def load_clinical_data(path="./data/PANCAN_raw/PANCAN_clinicalMatrix.tsv"):
+    clinical = pd.read_csv(path, sep="\t")
+    clinical.set_index("sample", inplace=True)
+    return clinical
+
+
+def load_sample_types(path="./data/PANCAN_raw/PANCAN_sample_type.tsv"):
+    sample_types = pd.read_csv(path, sep="\t")
+    sample_types.set_index("sample", inplace=True)
+    return sample_types
+
+
+def to_matrix(tcga):
+    idx_to_sample = pd.Series(data=tcga.index.tolist(), index=np.arange(tcga.shape[0], dtype=int))
+    idx_to_gene = pd.Series(data=tcga.columns.tolist(), index=np.arange(tcga.shape[1], dtype=int))
+    m = tcga.as_matrix()
+    return m, idx_to_sample, idx_to_gene
+
+
+def save_dataset_to_matrix(tcga, clinical, sample_types,
+                           path="./data/PANCAN_preprocessed/"):
+    os.makedirs(path, exist_ok=True)
+    # save gene expression
+    m, idx_to_sample, idx_to_gene = to_matrix(tcga)
+    np.save(os.path.join(path, "data_preprocessed"), m)
+    idx_to_sample.to_csv(os.path.join(path, "idx_to_sample.csv"), index=True, header=False)
+    idx_to_gene.to_csv(os.path.join(path, "idx_to_gene.csv"), index=True, header=False)
+    
+    # save clinical
+    clinical.to_csv(os.path.join(path, "clinical_preprocessed.csv"), index=True, header=True)
+    # save sample_types
+    sample_types.to_csv(os.path.join(path, "sample_types_preprocessed.csv"), index=True, header=True)
+
+    
+def load_PANCAN_TCGA_from_matrix(path="./data/PANCAN_preprocessed/"):
+    m = np.load(os.path.join(path, "data_preprocessed.npy"))
+    idx_to_sample = pd.read_csv(os.path.join(path, "idx_to_sample.csv"), 
+                                index_col=0, header=None, squeeze=True)
+    idx_to_gene = pd.read_csv(os.path.join(path, "idx_to_gene.csv"), 
+                              index_col=0, header=None, squeeze=True)
+    
+    clinical = pd.read_csv(os.path.join(path, "clinical_preprocessed.csv"), 
+                           index_col=0)
+    sample_types = pd.read_csv(os.path.join(path, "sample_types_preprocessed.csv"), 
+                               index_col=0)
+    
+    return m, idx_to_sample, idx_to_gene, clinical, sample_types
