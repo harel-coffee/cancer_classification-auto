@@ -1,3 +1,7 @@
-# Designing and Evaluating Deep Learning Methods for Cancer Classification on Gene Expression Data
+# Machine Learning and Deep Learning for cancer classification
 
-Repository with the code of the implemented methods described in the CIBB 2018 paper *Designing and Evaluating Deep Learning Methods for Cancer Classification on Gene Expression Data*.
+In this repository we provide a set of experiments evaluating the ability of ML and DL methods to predict phenotype features from the gene expression profiles.
+
+## Citation
+
+- *Designing and Evaluating Deep Learning Methods for Cancer Classification on Gene Expression Data* (Presented at CIBB 2018, To be printed) 
