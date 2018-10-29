@@ -6,6 +6,23 @@ In this repository we provide a set of experiments evaluating the ability of ML 
 
 - *Designing and Evaluating Deep Learning Methods for Cancer Classification on Gene Expression Data* (Presented at CIBB 2018, To be printed) 
 
+## How to use the repository
+
+The repository uses of the `make` unix utility to manage the data processing pipelines. 
+
+After cloning the repository, you will need to setup a new conda environment:
+```
+make create_environment
+```
+Secondly, you will have to update the requirements of the repository:
+```
+make requirements
+```
+Finally, in order to download the required data and pre-process them you need to run the following command:
+```
+make data
+```
+
 Project Organization
 ------------
 
