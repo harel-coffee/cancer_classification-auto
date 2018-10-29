@@ -39,5 +39,7 @@ def to_confusion_matrices(cv_scores):
 
 
 def cross_validation(pipeline, X, y=None, scoring=None, cv=5, n_jobs=1):
+    if scoring is None:
+        scoring = get_confusion_matrix_scores(y)
     scores = cross_validate(pipeline, X, y, scoring=scoring, cv=cv, n_jobs=n_jobs)
     return to_confusion_matrices(scores)
