@@ -6,14 +6,14 @@ from .clinical import load_clinical_cohort
 
 def load_sample_classification_problem(cohort_name):
     
-    classes_mapping = {
-        'Primary Tumor': 1,
-        'Solid Tissue Normal': 0
-    }
+    classes_mapping = [
+        'Solid Tissue Normal',
+        'Primary Tumor'
+    ]
     
     cohort_clinical = load_clinical_cohort(cohort_name)
     X, idx_to_sample, sample_to_idx = load_genexp_cohort(cohort_name)
-    clinical_with_class = cohort_clinical[cohort_clinical.sample_type.isin(classes_mapping.keys())]
+    clinical_with_class = cohort_clinical[cohort_clinical.sample_type.isin(classes_mapping)]
     
     # filtering X
     samples_with_class = clinical_with_class.index.tolist()
@@ -25,8 +25,8 @@ def load_sample_classification_problem(cohort_name):
     X_filtered = X[sample_to_idx_filtered, :]
     
     # creation of y
-    y = clinical_with_class.sample_type.map(lambda x: classes_mapping[x]).astype(int).values
+    y = clinical_with_class.sample_type.map(lambda x: classes_mapping.index(x)).astype(int).values
     
-    return X_filtered, y, new_idx_to_sample, new_sample_to_idx
+    return X_filtered, y, new_idx_to_sample, new_sample_to_idx, classes_mapping
     
     
