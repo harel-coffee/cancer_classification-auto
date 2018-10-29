@@ -9,7 +9,7 @@ def __cm_0_1(y_true, y_pred):
 def __cm_1_0(y_true, y_pred):
     return confusion_matrix(y_true, y_pred)[1, 0]
 def __cm_1_1(y_true, y_pred):
-    return confusion_matrix(y_true, y_pred)[0, 0]
+    return confusion_matrix(y_true, y_pred)[1, 1]
 
 
 def get_confusion_matrix_scores(y):
