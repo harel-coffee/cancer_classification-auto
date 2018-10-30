@@ -1,8 +1,5 @@
-import pathlib
 import os
-
-# Get the project directory as the parent of this module location
-project_dir = pathlib.Path(os.path.dirname(os.path.abspath(__file__))).parent.parent
+from .. import project_dir
 
 # ---------- data locations ----------
 data_path = project_dir / "data"

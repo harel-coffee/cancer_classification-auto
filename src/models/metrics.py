@@ -1,28 +1,24 @@
 import numpy as np
+import sys
 from sklearn.metrics import confusion_matrix, make_scorer
 from sklearn.model_selection import cross_validate
 
-def __cm_0_0(y_true, y_pred):
-    return confusion_matrix(y_true, y_pred)[0, 0]
-def __cm_0_1(y_true, y_pred):
-    return confusion_matrix(y_true, y_pred)[0, 1]
-def __cm_1_0(y_true, y_pred):
-    return confusion_matrix(y_true, y_pred)[1, 0]
-def __cm_1_1(y_true, y_pred):
-    return confusion_matrix(y_true, y_pred)[1, 1]
+# dynamically define the confusion matrix accession functions
+
+__max_cm_size = 10
+__this_module = sys.modules[__name__]
+
+for i in range(__max_cm_size):
+    for j in range(__max_cm_size):
+        exec("def __cm_{}_{}(y_true, y_pred):\n\treturn confusion_matrix(y_true, y_pred)[{}, {}]".format(i, j, i, j))
 
 
 def get_confusion_matrix_scores(y):
     classes = sorted(np.unique(y))
     scorers = {}
-    
-    if(len(classes) == 2):
-        scorers["0_0"] = make_scorer(__cm_0_0)
-        scorers["0_1"] = make_scorer(__cm_0_1)
-        scorers["1_0"] = make_scorer(__cm_1_0)
-        scorers["1_1"] = make_scorer(__cm_1_1)
-    else:
-        raise ValueError("Error! For now handling only two classes metrics!")
+    for i in classes:
+        for j in classes:
+            scorers["{}_{}".format(i, j)] = make_scorer(getattr(__this_module, "__cm_{}_{}".format(i, j)))
     return scorers
 
 def to_confusion_matrices(cv_scores):
@@ -40,6 +36,12 @@ def to_confusion_matrices(cv_scores):
 
 def cross_validation(pipeline, X, y=None, scoring=None, cv=5, n_jobs=1):
     if scoring is None:
-        scoring = get_confusion_matrix_scores(y)
-    scores = cross_validate(pipeline, X, y, scoring=scoring, cv=cv, n_jobs=n_jobs)
-    return to_confusion_matrices(scores)
+        f_scoring = get_confusion_matrix_scores(y)
+    else:
+        f_scoring = scoring
+    scores = cross_validate(pipeline, X, y, scoring=f_scoring, cv=cv, n_jobs=n_jobs)
+    
+    if scoring is None:
+        return to_confusion_matrices(scores)
+    else:
+        return scores
