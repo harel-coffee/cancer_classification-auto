@@ -19,9 +19,9 @@ def load_raw_clinical_cohort(cohort_name):
 def load_clinical_cohort(cohort_name):
     c = pd.read_table(processed_TCGA_path / cohort_name / "clinical.tsv", index_col=0)
     
-    idx_to_sample = pd.Series(index=np.arange(c.shape[0], dtype=int), data=c.index.values)
-    sample_to_idx = pd.Series(data=np.arange(c.shape[0], dtype=int), index=c.index.values)
+#     idx_to_sample = pd.Series(index=np.arange(c.shape[0], dtype=int), data=c.index.values)
+#     sample_to_idx = pd.Series(data=np.arange(c.shape[0], dtype=int), index=c.index.values)
     
-    idx_to_column = pd.Series(index=np.arange(c.shape[1], dtype=int), data=c.columns.values)
-    column_to_idx = pd.Series(data=np.arange(c.shape[1], dtype=int), index=c.columns.values)
-    return Dataset(c, idx_to_sample, sample_to_idx, idx_to_column, column_to_idx)
+#     idx_to_column = pd.Series(index=np.arange(c.shape[1], dtype=int), data=c.columns.values)
+#     column_to_idx = pd.Series(data=np.arange(c.shape[1], dtype=int), index=c.columns.values)
+    return c

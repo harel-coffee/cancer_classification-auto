@@ -30,11 +30,11 @@ def load_genexp_cohort(cohort_name):
     """
     X = np.load(processed_TCGA_path / cohort_name.upper() / "X.npy")
     idx_to_sample = __load_index(processed_TCGA_path / cohort_name.upper() / "idx_to_sample.tsv")
-    sample_to_idx = __load_index(processed_TCGA_path / cohort_name.upper() / "sample_to_idx.tsv")
+#     sample_to_idx = __load_index(processed_TCGA_path / cohort_name.upper() / "sample_to_idx.tsv")
     
-    idx_to_gene, gene_to_idx = load_gene_indices()
+    idx_to_gene, _ = load_gene_indices()
     
-    return Dataset(X, idx_to_sample, sample_to_idx, idx_to_gene, gene_to_idx)
+    return pd.DataFrame(data=X, index=idx_to_sample, columns=idx_to_gene)
 
 
 def load_gene_indices():

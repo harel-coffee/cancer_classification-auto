@@ -30,5 +30,21 @@ def load_sample_classification_problem(cohort_name):
     result = Dataset(X_filtered, new_idx_to_sample, new_sample_to_idx, 
                      cohort_genexp.idx_to_column, cohort_genexp.column_to_idx, y, classes_mapping)
     return result
+
+
+def get_normal_vs_tumor_task(cohort_name):
+    clinical = load_clinical_cohort(cohort_name)
+    X = load_genexp_cohort(cohort_name)
     
+    classes = [
+        'Solid Tissue Normal',
+        'Primary Tumor'
+    ]
+    
+    samples_with_class = clinical[clinical.sample_type.isin(classes)].index.tolist()
+    X_filtered = X.loc[samples_with_class]
+    y = clinical.loc[samples_with_class].sample_type.map(lambda x: classes.index(x)).astype(int).values
+    idx_to_sample = pd.Series(data = X_filtered.index, index=np.arange(X_filtered.shape[0], dtype=int))
+    idx_to_gene = pd.Series(data = X_filtered.columns, index=np.arange(X_filtered.shape[1], dtype=int))
+    return X_filtered.values, idx_to_sample, idx_to_gene, y, classes
     
