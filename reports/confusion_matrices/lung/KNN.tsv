@@ -1,4 +1,4 @@
-true_predicted	normal_normal	normal_tumor	tumor_normal	tumor_tumor	repetition	fold
+true_predicted	tp	fn	fp	tn	repetition	fold
 0	22	0	0	204	0	0
 1	22	0	4	199	0	1
 2	22	0	3	200	0	2
