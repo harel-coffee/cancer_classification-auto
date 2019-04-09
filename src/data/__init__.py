@@ -33,7 +33,7 @@ TCGA_COHORTS = [
 	'LIHC',
 	'LGG',
 	'LUAD',
-	'LUNG',
+# 	'LUNG',
 	'LUSC',
 	'SKCM',
 	'MESO',

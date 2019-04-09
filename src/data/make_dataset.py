@@ -38,8 +38,8 @@ def download_TCGA_from_XenaBrowser():
             wget.download(url=clinical_url_template.format(cohort, cohort), out = str(cohort_clinical_path))
         else:
             logger.info("Clinical data of {} already downloaded".format(cohort))
-           
-            
+
+
 def preprocess_TCGA_cohorts():
     logger = logging.getLogger(__name__)
     out_data_path = processed_data_path / "TCGA"
