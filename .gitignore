@@ -1,4 +1,8 @@
-/data/
+/data/*
+!/data/external
+/data/external/*
+!/data/external/cbioportal_tcga_stage.tsv
+
 /models/
 
 # Created by https://www.gitignore.io/api/python,pycharm,jupyternotebook
